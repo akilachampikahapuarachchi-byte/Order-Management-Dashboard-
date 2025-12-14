@@ -101,7 +101,11 @@ const ProductListPage = () => {
       field: "price",
       headerName: "Price",
       width: 120,
-      valueFormatter: (params) => `$${params.value}`,
+      renderCell: (params) => {
+      const v = params.row?.price;
+      const n = Number(v);
+      return Number.isFinite(n) ? `$${n.toFixed(2)}` : "—";
+    },
     },
     {
       field: "stock",
