@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useMemo, useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   Box,
@@ -25,7 +25,10 @@ import {
 import FilterPanel from "../../components/common/FilterPanel";
 import { showSnackbar } from "../ui/uiSlice";
 
+const clamp = (n, min, max) => Math.max(min, Math.min(n, max));
+
 const ProductListPage = () => {
+ 
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
@@ -35,34 +38,59 @@ const ProductListPage = () => {
   const status = useSelector(selectProductStatus);
   const error = useSelector(selectProductError);
 
+  const categories = useSelector(selectProductCategories);
+  const maxPriceRaw = useSelector(selectMaxProductPrice);
+
+  const maxPrice = useMemo(() => {
+    const n = Number(maxPriceRaw);
+    return Number.isFinite(n) && n > 0 ? n : 0;
+  }, [maxPriceRaw]);
+
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState(null);
-  const [priceRange, setPriceRange] = useState([0, 1000]);
+
+  const [priceRange, setPriceRange] = useState([0, 0]);
+  const [priceDirty, setPriceDirty] = useState(false);
 
   useEffect(() => {
     if (status === "idle") {
-      dispatch(fetchProducts()).unwrap().catch((err) => {
-        dispatch(
-          showSnackbar({ message: err || "Failed to load products", severity: "error" })
-        );
-      });
+      dispatch(fetchProducts())
+        .unwrap()
+        .catch((err) => {
+          dispatch(
+            showSnackbar({
+              message: err || "Failed to load products",
+              severity: "error",
+            })
+          );
+        });
     }
   }, [status, dispatch]);
 
-  const maxPrice = useSelector(selectMaxProductPrice);
+  const effectivePriceRange = useMemo(() => {
+    if (!priceDirty) return [0, maxPrice];
+
+    const min = clamp(Number(priceRange[0]) || 0, 0, maxPrice);
+    const max = clamp(Number(priceRange[1]) || 0, 0, maxPrice);
+
+    return min <= max ? [min, max] : [max, min];
+  }, [priceDirty, priceRange, maxPrice]);
+
+  const handlePriceRangeChange = (nextRange) => {
+    setPriceDirty(true);
+    setPriceRange(nextRange);
+  };
 
   const columnVisibilityModel = isSmDown
     ? { id: false, category: false, stock: false, active: false }
     : {};
 
-  useEffect(() => {
-    setPriceRange([0, maxPrice]);
-  }, [maxPrice]);
-
-  const categories = useSelector(selectProductCategories);
-
   const filtered = useSelector((state) =>
-    selectFilteredProducts(state, { search, category, priceRange })
+    selectFilteredProducts(state, {
+      search,
+      category,
+      priceRange: effectivePriceRange,
+    })
   );
 
   const columns = [
@@ -105,7 +133,7 @@ const ProductListPage = () => {
         onCategoryChange={setCategory}
         categories={categories}
         priceRange={priceRange}
-        onPriceRangeChange={setPriceRange}
+        onPriceRangeChange={handlePriceRangeChange}
         maxPrice={maxPrice}
         onClear={() => {
           setSearch("");

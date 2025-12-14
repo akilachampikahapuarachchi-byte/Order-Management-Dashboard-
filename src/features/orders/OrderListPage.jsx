@@ -95,9 +95,9 @@ const OrderListPage = () => {
         Orders
       </Typography>
 
-      <Paper sx={{ mb: 2 }}>
-        <Toolbar sx={{ gap: 2, flexWrap: "wrap", alignItems: "flex-start" }}>
-          <FormControl size="small" sx={{ minWidth: { xs: "100%", sm: 160 } }}>
+      <Paper sx={{p:2, mb: 2 }}>
+        <Toolbar sx={{ gap: 2, flexWrap: "wrap", alignItems: "center", width: "100%", minHeight:"auto" }}>
+          <FormControl size="small" sx={{ minWidth: { xs: "100%", sm: 180 }, flexShrink:0 }}>
             <InputLabel>Status</InputLabel>
             <Select
               label="Status"
